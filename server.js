@@ -10,18 +10,24 @@ app.get('/login', (req, res) => {
 
 app.get('/id/:n', (req, res) => {
   const url = `https://nd.kodaktor.ru/users/${req.params.n}`;
-  https.get(url, { headers: {} }, (response) => {
+  const req2 = https.request(url, { method: 'GET' }, (response) => {
     let data = '';
     response.on('data', chunk => data += chunk);
     response.on('end', () => {
       try {
         const json = JSON.parse(data);
-        res.send(json.login);
+        if (json.login !== undefined) {
+          res.send(String(json.login));
+        } else {
+          res.status(500).send('No login field. Raw: ' + data);
+        }
       } catch (e) {
-        res.status(500).send('Parse error: ' + e.message);
+        res.status(500).send('Parse error: ' + e.message + ' | Raw: ' + data);
       }
     });
-  }).on('error', e => res.status(500).send(e.message));
+  });
+  req2.on('error', e => res.status(500).send('Request error: ' + e.message));
+  req2.end();
 });
 
 const PORT = process.env.PORT || 3000;
