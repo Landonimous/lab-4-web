@@ -10,6 +10,7 @@ app.get('/login', (req, res) => {
 
 app.get('/id/:n', (req, res) => {
   const url = `https://nd.kodaktor.ru/users/${req.params.n}`;
+  
   const req2 = https.request(url, { method: 'GET' }, (response) => {
     let data = '';
     response.on('data', chunk => data += chunk);
@@ -19,14 +20,23 @@ app.get('/id/:n', (req, res) => {
         if (json.login !== undefined) {
           res.send(String(json.login));
         } else {
-          res.status(500).send('No login field. Raw: ' + data);
+          res.send('No login field. Raw: ' + data);
         }
       } catch (e) {
-        res.status(500).send('Parse error: ' + e.message + ' | Raw: ' + data);
+        res.send('Parse error: ' + e.message + ' | Raw: ' + data);
       }
     });
   });
-  req2.on('error', e => res.status(500).send('Request error: ' + e.message));
+
+  req2.setTimeout(5000, () => {
+    req2.destroy();
+    res.send('Timeout: no response from nd.kodaktor.ru');
+  });
+
+  req2.on('error', e => {
+    if (!res.headersSent) res.send('Request error: ' + e.message);
+  });
+
   req2.end();
 });
 
